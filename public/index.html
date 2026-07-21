@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Striver A2Z DSA Scraper Bot</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="app.css">
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- Sidebar / Brand -->
+        <header class="app-header">
+            <div class="brand">
+                <div class="brand-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>DSA Scraper</h1>
+                    <span>Striver's A2Z Bot Control</span>
+                </div>
+            </div>
+            
+            <div class="status-panel">
+                <div id="status-indicator" class="status-badge status-idle">
+                    <span class="pulse"></span>
+                    <span class="status-label">Idle</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-header">
+                        <span>Scraping Progress</span>
+                        <span id="progress-text">0 / 0 (0%)</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Workspace -->
+        <main class="app-workspace">
+            
+            <!-- Left Column: Controls & Console -->
+            <section class="workspace-column controls-column">
+                <div class="panel control-panel">
+                    <h2>Scraper Control</h2>
+                    <div class="control-buttons">
+                        <button id="btn-start" class="btn btn-primary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            Start Scraper
+                        </button>
+                        <button id="btn-pause" class="btn btn-warning" disabled>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                            Pause
+                        </button>
+                        <button id="btn-resume" class="btn btn-primary" style="display: none;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            Resume
+                        </button>
+                        <button id="btn-stop" class="btn btn-danger" disabled>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18"/></svg>
+                            Stop
+                        </button>
+                    </div>
+                    
+                    <div class="selection-status">
+                        <span id="selection-count">All unscraped problems queue</span>
+                        <button id="btn-scrape-selected" class="btn btn-outline" style="display: none;">Scrape Selected (<span id="btn-sel-count">0</span>)</button>
+                    </div>
+                    
+                    <div class="actions-group">
+                        <button id="btn-export" class="btn btn-secondary w-100">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Export Codes to Local Files
+                        </button>
+                    </div>
+                    
+                    <div class="actions-group" style="margin-top: 8px;">
+                        <button id="btn-random" class="btn w-100" style="background: linear-gradient(135deg, hsl(280, 75%, 55%), hsl(250, 75%, 55%)); color: white; border: none; font-weight: 600;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="9" cy="9" r="1.5"/><circle cx="15" cy="15" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="9" cy="15" r="1.5"/><circle cx="15" cy="9" r="1.5"/></svg>
+                            Practice Random Question
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel console-panel">
+                    <div class="panel-header">
+                        <h2>Live Console Log</h2>
+                        <button id="btn-clear-console" class="btn btn-icon" title="Clear Console">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                    </div>
+                    <div id="console-output" class="console-box">
+                        <div class="log-entry log-info">[System] Ready. Click 'Start Scraper' to begin scraping takeuforward.org...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Middle Column: Sheet Explorer -->
+            <section class="workspace-column explorer-column">
+                <div class="panel explorer-panel">
+                    <div class="panel-header explorer-header">
+                        <h2>Striver A2Z Sheet</h2>
+                        <div class="search-bar">
+                            <input type="text" id="search-input" placeholder="Search problems...">
+                            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        </div>
+                    </div>
+                    
+                    <div class="explorer-toolbar">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="select-all-problems">
+                            <span class="checkmark"></span>
+                            Select All
+                        </label>
+                        <span id="filter-info">Showing all 474 problems</span>
+                    </div>
+
+                    <div id="sheet-explorer-tree" class="tree-container">
+                        <!-- Tree will be rendered here dynamically -->
+                        <div class="loading-state">
+                            <div class="spinner"></div>
+                            <span>Loading DSA Sheet structure...</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Column: Code & Details Viewer -->
+            <section class="workspace-column viewer-column">
+                <div class="panel viewer-panel empty-viewer" id="viewer-empty-state">
+                    <div class="empty-state-content">
+                        <div class="empty-state-icon">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+                            </svg>
+                        </div>
+                        <h3>No Problem Selected</h3>
+                        <p>Click on any problem in the sheet explorer list to view its scraped code solutions, complexity analysis, and external links.</p>
+                    </div>
+                </div>
+
+                <div class="panel viewer-panel" id="viewer-content-state" style="display: none;">
+                    <div class="viewer-meta">
+                        <div class="viewer-meta-left">
+                            <span id="view-problem-difficulty" class="badge">Easy</span>
+                            <span id="view-problem-category" class="meta-path">Learn the basics</span>
+                        </div>
+                        <div class="viewer-links">
+                            <button id="btn-toggle-solved" class="btn btn-icon-text btn-outline" style="padding: 6px 12px; font-size: 12px; font-weight: 600;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                                <span>Mark Solved</span>
+                            </button>
+                            <a id="link-leetcode" href="#" target="_blank" class="btn btn-icon-text link-external">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                LeetCode
+                            </a>
+                            <a id="link-article" href="#" target="_blank" class="btn btn-icon-text link-external">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                Article
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <h2 id="view-problem-name">Problem Name</h2>
+                    
+                    <!-- Approach Selector -->
+                    <div class="approach-selector-container">
+                        <label for="approach-select">Approach:</label>
+                        <select id="approach-select" class="form-select">
+                            <option value="Brute Force">Brute Force</option>
+                        </select>
+                    </div>
+
+                    <!-- Code Section -->
+                    <div class="code-container-panel">
+                        <div class="code-header-tabs">
+                            <div class="lang-tabs" id="lang-tabs-container">
+                                <button class="tab-btn active" data-lang="cpp">C++</button>
+                                <button class="tab-btn" data-lang="java">Java</button>
+                                <button class="tab-btn" data-lang="python">Python</button>
+                                <button class="tab-btn" data-lang="javascript">JS</button>
+                            </div>
+                            <button id="btn-copy-code" class="btn btn-icon-text">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                Copy
+                            </button>
+                        </div>
+                        <div class="code-editor-area">
+                            <pre><code id="code-display" class="fira-code"></code></pre>
+                        </div>
+                    </div>
+
+                    <!-- Complexity Panel -->
+                    <div class="complexity-section">
+                        <h3>Complexity Analysis</h3>
+                        <div id="complexity-display" class="complexity-box">
+                            Time Complexity: O(N)<br>Space Complexity: O(1)
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
