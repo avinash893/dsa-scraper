@@ -248,18 +248,13 @@ async function triggerScraperAction(action, problems = null) {
     }
 }
 
-// Export solution files to output directory
-async function exportFiles() {
-    logToConsole('[Exporter] Triggering solution files export...');
+// Export solution files as a downloadable ZIP package
+function exportFiles() {
+    logToConsole('[Exporter] Triggering solution ZIP download...');
     try {
-        const res = await fetch('/api/export', { method: 'POST' });
-        const data = await res.json();
-        if (data.success) {
-            logToConsole(`[Exporter] Success: ${data.message}`, 'success');
-            alert(data.message);
-        } else {
-            logToConsole(`[Exporter] Error: ${data.error}`, 'error');
-        }
+        // Trigger browser's native file download
+        window.location.href = '/api/export-zip';
+        logToConsole('[Exporter] Download started.', 'success');
     } catch (e) {
         logToConsole(`[Exporter] Error: Request failed: ${e.message}`, 'error');
     }

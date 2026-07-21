@@ -3,6 +3,7 @@ import { WebSocketServer } from 'ws';
 import http from 'http';
 import fs from 'fs';
 import os from 'os';
+import AdmZip from 'adm-zip';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { ScraperOrchestrator, loadDatabase, saveDatabase } from './scraper.js';
@@ -117,6 +118,84 @@ function sanitizePathName(name) {
         .replace(/\s+/g, ' ')
         .trim();
 }
+
+app.get('/api/export-zip', (req, res) => {
+    try {
+        const db = loadDatabase();
+        const outputDir = path.join(__dirname, 'output_temp');
+        
+        // Remove existing temp output directory to have a clean export
+        if (fs.existsSync(outputDir)) {
+            fs.rmSync(outputDir, { recursive: true, force: true });
+        }
+        fs.mkdirSync(outputDir, { recursive: true });
+        
+        let fileCount = 0;
+        const extensionMap = {
+            'cpp': '.cpp',
+            'c++': '.cpp',
+            'java': '.java',
+            'python': '.py',
+            'py': '.py',
+            'javascript': '.js',
+            'js': '.js',
+            'c#': '.cs',
+            'csharp': '.cs'
+        };
+
+        db.forEach((category, catIdx) => {
+            const catName = `${String(catIdx + 1).padStart(2, '0')}. ${sanitizePathName(category.category_name)}`;
+            const catPath = path.join(outputDir, catName);
+
+            category.subcategories.forEach((sub, subIdx) => {
+                const subName = `${String(subIdx + 1).padStart(2, '0')}. ${sanitizePathName(sub.subcategory_name)}`;
+                const subPath = path.join(catPath, subName);
+
+                sub.problems.forEach((prob) => {
+                    if (prob.scraped && prob.solutions) {
+                        const probName = sanitizePathName(prob.problem_name);
+                        const probPath = path.join(subPath, probName);
+
+                        fs.mkdirSync(probPath, { recursive: true });
+
+                        Object.entries(prob.solutions).forEach(([approachName, approachDetails]) => {
+                            if (approachDetails && approachDetails.code) {
+                                Object.entries(approachDetails.code).forEach(([lang, codeText]) => {
+                                    const ext = extensionMap[lang.toLowerCase()] || `.${lang}`;
+                                    const sanitizedApproach = sanitizePathName(approachName);
+                                    const fileName = `${sanitizedApproach}${ext}`;
+                                    const filePath = path.join(probPath, fileName);
+                                    
+                                    fs.writeFileSync(filePath, codeText, 'utf8');
+                                    fileCount++;
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+        });
+
+        if (fileCount === 0) {
+            return res.status(400).send('No scraped solutions found to export.');
+        }
+
+        // Create ZIP file
+        const zip = new AdmZip();
+        zip.addLocalFolder(outputDir);
+        const zipBuffer = zip.toBuffer();
+
+        // Clean up temp output folder on server disk
+        fs.rmSync(outputDir, { recursive: true, force: true });
+
+        res.set('Content-Type', 'application/zip');
+        res.set('Content-Disposition', 'attachment; filename=striver_dsa_solutions.zip');
+        res.send(zipBuffer);
+    } catch (e) {
+        console.error('ZIP Export error:', e);
+        res.status(500).send(`Export failed: ${e.message}`);
+    }
+});
 
 app.post('/api/export', (req, res) => {
     try {
