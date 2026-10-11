@@ -49,21 +49,32 @@ async function init() {
     connectWebSocket();
 }
 
-// Fetch Striver Sheet JSON Database from Backend
+// Fetch Striver Sheet JSON Database from Backend or Static File
 async function fetchSheetData() {
     try {
-        const response = await fetch('/api/sheet');
+        let response;
+        try {
+            response = await fetch('./api/sheet');
+            if (!response.ok) throw new Error('API not available');
+        } catch {
+            response = await fetch('./parsed_sheet.json');
+        }
         dsaSheet = await response.json();
         renderExplorerTree();
         updateFilterInfo();
     } catch (e) {
         console.error('Error fetching sheet data:', e);
-        logToConsole(`Error: Failed to fetch sheet data from server: ${e.message}`, 'error');
+        logToConsole(`Error: Failed to fetch sheet data: ${e.message}`, 'error');
     }
 }
 
 // Connect to WebSocket Server for Real-Time Updates
 function connectWebSocket() {
+    if (window.location.hostname.includes('github.io')) {
+        logToConsole('[System] Running on GitHub Pages. Problem explorer, solutions, and random practice are active!', 'success');
+        return;
+    }
+
     const loc = window.location;
     const wsUri = (loc.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + loc.host;
     
@@ -228,6 +239,11 @@ function setupEventListeners() {
 
 // Trigger scraper action on backend
 async function triggerScraperAction(action, problems = null) {
+    if (window.location.hostname.includes('github.io')) {
+        logToConsole(`[Notice] Scraper crawler controls require running locally with Node.js. All 474 problems and solutions are already pre-scraped and fully accessible here!`, 'warning');
+        return;
+    }
+
     try {
         let endpoint = `/api/${action}`;
         let options = { method: 'POST' };
@@ -248,12 +264,78 @@ async function triggerScraperAction(action, problems = null) {
     }
 }
 
+// Helper to sanitize path names
+function sanitizeExportName(name) {
+    if (!name) return '';
+    return name
+        .replace(/[\r\n\t]/g, ' ')
+        .replace(/[\\/:*?"<>|]/g, '_')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 // Export solution files as a downloadable ZIP package
 function exportFiles() {
     logToConsole('[Exporter] Triggering solution ZIP download...');
+    
+    // If running on GitHub Pages (or static mode) and JSZip is available, build zip client-side
+    if (window.location.hostname.includes('github.io') && typeof JSZip !== 'undefined') {
+        logToConsole('[Exporter] Generating ZIP archive in browser...', 'info');
+        try {
+            const zip = new JSZip();
+            const extensionMap = {
+                'cpp': '.cpp', 'c++': '.cpp', 'java': '.java',
+                'python': '.py', 'py': '.py', 'javascript': '.js',
+                'js': '.js', 'c#': '.cs', 'csharp': '.cs'
+            };
+
+            let fileCount = 0;
+            dsaSheet.forEach((category, catIdx) => {
+                const catName = `${String(catIdx + 1).padStart(2, '0')}. ${sanitizeExportName(category.category_name)}`;
+                category.subcategories.forEach((sub, subIdx) => {
+                    const subName = `${String(subIdx + 1).padStart(2, '0')}. ${sanitizeExportName(sub.subcategory_name)}`;
+                    sub.problems.forEach((prob) => {
+                        if (prob.scraped && prob.solutions) {
+                            const probName = sanitizeExportName(prob.problem_name);
+                            const folderPath = `${catName}/${subName}/${probName}`;
+                            Object.entries(prob.solutions).forEach(([approachName, approachDetails]) => {
+                                if (approachDetails && approachDetails.code) {
+                                    Object.entries(approachDetails.code).forEach(([lang, codeText]) => {
+                                        const ext = extensionMap[lang.toLowerCase()] || `.${lang}`;
+                                        const sanitizedApproach = sanitizeExportName(approachName);
+                                        zip.file(`${folderPath}/${sanitizedApproach}${ext}`, codeText);
+                                        fileCount++;
+                                    });
+                                }
+                            });
+                        }
+                    });
+                });
+            });
+
+            if (fileCount === 0) {
+                logToConsole('[Exporter] No scraped solutions found to export.', 'warning');
+                return;
+            }
+
+            zip.generateAsync({ type: 'blob' }).then((content) => {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(content);
+                a.download = 'striver_dsa_solutions.zip';
+                a.click();
+                logToConsole(`[Exporter] Successfully exported ${fileCount} files into striver_dsa_solutions.zip!`, 'success');
+            }).catch(err => {
+                logToConsole(`[Exporter] Failed to build ZIP: ${err.message}`, 'error');
+            });
+            return;
+        } catch (err) {
+            logToConsole(`[Exporter] Client-side ZIP error: ${err.message}`, 'error');
+        }
+    }
+
     try {
-        // Trigger browser's native file download
-        window.location.href = '/api/export-zip';
+        // Trigger browser's native file download via backend
+        window.location.href = './api/export-zip';
         logToConsole('[Exporter] Download started.', 'success');
     } catch (e) {
         logToConsole(`[Exporter] Error: Request failed: ${e.message}`, 'error');
